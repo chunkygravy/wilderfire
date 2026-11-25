@@ -824,7 +824,7 @@ function paletteToXML(palette: RGB[], indent: string): string {
   let hex = '';
   for (let i = 0; i < 256; i++) {
     const c = palette[i] ?? [0, 0, 0];
-    hex += c.map((v) => Math.round(Math.min(1, Math.max(0, v)) * 255).toString(16).padStart(2, '0')).join('');
+    hex += c.map((v) => Math.round(Math.min(1, Math.max(0, v)) * 255).toString(16).toUpperCase().padStart(2, '0')).join('');
     if (i % 8 === 7) hex += '\n' + indent + '   ';
   }
   return `${indent}<palette count="256" format="RGB">\n${indent}   ${hex.trimEnd()}\n${indent}</palette>`;
