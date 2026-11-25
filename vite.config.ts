@@ -103,13 +103,14 @@ function serviceWorker(): Plugin {
       const flames = readdirSync(resolve(import.meta.dirname, 'public/flames')).filter((f) => f.endsWith('.flame')).map((f) => '/flames/' + f);
       const precache = ['/', '/index.html', '/manifest.webmanifest', '/icon.svg', ...files.map((f) => '/' + f), ...flames];
       const sw = `// WilderFire service worker (generated at build time by vite.config.ts)
-const CACHE = ${JSON.stringify(cacheName)};
-const PRECACHE = ${JSON.stringify(precache)};
+const CACHE = ${JSON.stringify(cacheName)} + '-' + self.location.pathname;
+const BASE = new URL('./', self.location.href).pathname;
+const PRECACHE = ${JSON.stringify(precache)}.map(p => BASE + p.slice(1));
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(PRECACHE)).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', (e) => {
-  e.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
+  e.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => k.startsWith('wilderfire-') && k.endsWith('-' + self.location.pathname) && k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
 });
 // ignoreVary: the server may answer with \`Vary: Accept-Encoding\`, and a request created inside the worker
 // (precache) carries no such header — a strict match would then miss every precached asset offline
@@ -117,18 +118,18 @@ self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
-  if (url.origin !== self.location.origin) return; // OpenRouter / local AI servers: never touched
-  if (req.mode === 'navigate' || url.pathname === '/' || url.pathname === '/index.html') {
+  if (url.origin !== self.location.origin || !url.pathname.startsWith(BASE)) return; // OpenRouter / local AI servers: never touched
+  if (req.mode === 'navigate' || url.pathname === BASE || url.pathname === BASE + 'index.html') {
     // page: network first (deploys land on the next load), cached copy offline
-    e.respondWith(fetch(req).then((r) => { const copy = r.clone(); caches.open(CACHE).then((c) => c.put('/', copy)); return r; }).catch(() => caches.match('/', { ignoreVary: true })));
+    e.respondWith(fetch(req).then((r) => { const copy = r.clone(); caches.open(CACHE).then((c) => c.put(BASE, copy)); return r; }).catch(() => caches.match(BASE, { ignoreVary: true })));
     return;
   }
-  if (url.pathname.startsWith('/assets/')) {
+  if (url.pathname.startsWith(BASE + 'assets/')) {
     // hashed, immutable: cache first
     e.respondWith(caches.match(req, { ignoreVary: true }).then((hit) => hit || fetch(req).then((r) => { const copy = r.clone(); caches.open(CACHE).then((c) => c.put(req, copy)); return r; })));
     return;
   }
-  if (url.pathname.startsWith('/flames/') || url.pathname === '/manifest.webmanifest' || url.pathname === '/icon.svg') {
+  if (url.pathname.startsWith(BASE + 'flames/') || url.pathname === BASE + 'manifest.webmanifest' || url.pathname === BASE + 'icon.svg') {
     // samples: stale-while-revalidate
     e.respondWith(caches.match(req, { ignoreVary: true }).then((hit) => {
       const net = fetch(req).then((r) => { const copy = r.clone(); caches.open(CACHE).then((c) => c.put(req, copy)); return r; }).catch(() => hit);
@@ -143,6 +144,7 @@ self.addEventListener('fetch', (e) => {
 }
 
 export default defineConfig({
+  base: process.env.WILDERFIRE_BASE || '/',
   plugins: [jwfReportSink(), compareSink(), baselineSink(), serviceWorker()],
   build: {
     // the JWildfire variation registry (variations.jwf.ts) is loaded lazily and is ~1.9 MB on purpose
