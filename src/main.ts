@@ -374,7 +374,7 @@ async function boot() {
   // production only, so the dev server's modules are never cached. A newer build waiting to
   // take over is announced in the status bar (it takes effect on the next load).
   if (import.meta.env.PROD && 'serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js').then((reg) => {
+    navigator.serviceWorker.register(import.meta.env.BASE_URL + 'sw.js').then((reg) => {
       reg.addEventListener('updatefound', () => {
         const nw = reg.installing;
         nw?.addEventListener('statechange', () => {
