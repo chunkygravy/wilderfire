@@ -12,34 +12,90 @@ import { FILTER_KERNELS, normFilterKernel, type FilterKernel } from '../gpu/filt
 
 const SRC = 'render';
 
+// Camera-only numeric controls: preserve exact entered values independently of range step.
+function cameraSlider(o: Parameters<typeof slider>[0], mapping?: {
+  toDisplay: (v: number) => number; fromDisplay: (v: number) => number;
+  min: number; max: number;
+}) {
+  const root = el('div', 'row');
+  const label = el('label', '', o.label);
+  const range = el('input');
+  range.type = 'range';
+  range.min = String(o.min); range.max = String(o.max); range.step = String(o.step);
+  range.style.minWidth = '0';
+  const field = el('input');
+  field.type = 'number'; field.step = 'any';
+  field.setAttribute('aria-label', o.label);
+  range.setAttribute('aria-label', o.label + ' slider');
+  field.style.flex = '0 0 76px'; field.style.width = '76px'; field.style.minWidth = '0';
+  field.min = String(mapping?.min ?? o.min);
+  field.max = String(mapping?.max ?? o.max);
+  let current = o.value;
+  const set = (v: number) => {
+    current = v;
+    range.value = String(v);
+    field.value = String(mapping ? mapping.toDisplay(v) : v);
+  };
+  range.oninput = () => { const v = Number(range.value); set(v); o.onInput(v); };
+  field.onchange = () => {
+    const n = field.valueAsNumber;
+    if (!Number.isFinite(n) || n < Number(field.min) || n > Number(field.max)) { set(current); return; }
+    const v = mapping ? mapping.fromDisplay(n) : n;
+    set(v); o.onInput(v);
+  };
+  set(current);
+  root.append(label, range, field);
+  return { root, set };
+}
+
+function cameraCoordinate(label: string, value: number, onChange: (v: number) => void) {
+  const root = el('div', 'row');
+  const field = el('input');
+  field.type = 'number'; field.step = 'any';
+  field.setAttribute('aria-label', label);
+  field.style.flex = '1'; field.style.minWidth = '0';
+  let current = value;
+  const set = (v: number) => { current = v; field.value = String(v); };
+  field.onchange = () => {
+    const v = field.valueAsNumber;
+    if (!Number.isFinite(v)) { set(current); return; }
+    set(v); onChange(v);
+  };
+  set(value);
+  root.append(el('label', '', label), field);
+  return { root, set };
+}
+
 export function buildRenderPanel(app: App, root: HTMLElement) {
   const cam = el('div', 'section');
   cam.append(el('h3', '', 'Camera'));
-  const zoomS = slider({
-    label: 'Zoom', min: -2, max: 3, step: 0.01, value: Math.log2(app.flame.zoom),
+  const centerX = cameraCoordinate('Center X', app.flame.centerX, (v) => { app.flame.centerX = v; app.commit(SRC); });
+  const centerY = cameraCoordinate('Center Y', app.flame.centerY, (v) => { app.flame.centerY = v; app.commit(SRC); });
+  const zoomS = cameraSlider({
+    label: 'Zoom', min: Math.log2(0.02), max: 6, step: 0.01, value: Math.log2(app.flame.zoom),
     fmt: (v) => (2 ** v).toFixed(2) + '×',
     onInput: (v) => { app.flame.zoom = 2 ** v; app.commit(SRC); },
-  });
-  const rotS = slider({
+  }, { toDisplay: (v) => 2 ** v, fromDisplay: Math.log2, min: 0.02, max: 64 });
+  const rotS = cameraSlider({
     label: 'Rotation', min: -180, max: 180, step: 1, value: (app.flame.rotation * 180) / Math.PI,
     fmt: (v) => v.toFixed(0) + '°',
     onInput: (v) => { app.flame.rotation = (v * Math.PI) / 180; app.commit(SRC); },
   });
-  const pitchS = slider({
+  const pitchS = cameraSlider({
     label: 'Pitch', min: -180, max: 180, step: 1, value: app.flame.camPitch,
     fmt: (v) => v.toFixed(0) + '°',
     onInput: (v) => { app.flame.camPitch = v; app.commit(SRC); },
   });
-  const yawS = slider({
+  const yawS = cameraSlider({
     label: 'Yaw', min: -180, max: 180, step: 1, value: app.flame.camYaw,
     fmt: (v) => v.toFixed(0) + '°',
     onInput: (v) => { app.flame.camYaw = v; app.commit(SRC); },
   });
-  const perspS = slider({
+  const perspS = cameraSlider({
     label: 'Perspective', min: 0, max: 1, step: 0.01, value: app.flame.camPersp,
     onInput: (v) => { app.flame.camPersp = v; app.commit(SRC); },
   });
-  const camZS = slider({
+  const camZS = cameraSlider({
     label: 'Cam Z', min: -2, max: 2, step: 0.01, value: app.flame.camPosZ,
     onInput: (v) => { app.flame.camPosZ = v; app.commit(SRC); },
   });
@@ -52,7 +108,7 @@ export function buildRenderPanel(app: App, root: HTMLElement) {
   pzLab.title = "2D variations keep the point's depth instead of flattening it (preserve_z)";
   pzChk.onchange = () => { app.flame.preserveZ = pzChk.checked; app.commit(SRC); };
   pzRow.append(pzLab);
-  cam.append(zoomS.root, rotS.root, pitchS.root, yawS.root, perspS.root, camZS.root, pzRow);
+  cam.append(centerX.root, centerY.root, zoomS.root, rotS.root, pitchS.root, yawS.root, perspS.root, camZS.root, pzRow);
   cam.append(el('div', 'hint', 'Drag the canvas to pan · scroll to zoom · drag triangle handles to edit transforms. Pitch/yaw/perspective view the flame in 3D.'));
 
   // Depth of field + depth fade
@@ -527,6 +583,7 @@ export function buildRenderPanel(app: App, root: HTMLElement) {
 
   app.on('flame', (src) => {
     if (src === SRC) return;
+    centerX.set(app.flame.centerX); centerY.set(app.flame.centerY);
     zoomS.set(Math.log2(app.flame.zoom));
     rotS.set((app.flame.rotation * 180) / Math.PI);
     pitchS.set(app.flame.camPitch); yawS.set(app.flame.camYaw); perspS.set(app.flame.camPersp); camZS.set(app.flame.camPosZ);
