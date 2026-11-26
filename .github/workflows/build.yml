@@ -3,7 +3,7 @@ on:
   push:
     branches: [main, 'fix/**', 'feature/**', 'ui/**', 'perf/**', 'release/**']
   pull_request:
-    branches: [main]
+    branches: [main, 'feature/github-pages']
   workflow_dispatch:
 permissions:
   contents: read
