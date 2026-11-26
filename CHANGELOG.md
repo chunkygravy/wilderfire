@@ -2,6 +2,16 @@
 
 Notable changes to this WilderFire fork are documented here. Version headings distinguish released versions from development candidates.
 
+## [0.1.2] — Development preview (unreleased)
+
+### Added
+- Editable Center X and Center Y coordinates, synchronized with canvas navigation.
+- Direct numeric entry alongside all six existing camera sliders.
+- Numeric validation and zoom range aligned with canvas navigation (0.02–64×).
+
+### Validation
+- Automated build and tablet acceptance testing pending.
+
 ## [0.1.1] — Release candidate (unreleased)
 
 ### Added
