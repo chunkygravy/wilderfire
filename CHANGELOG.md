@@ -2,6 +2,12 @@
 
 Notable changes to this WilderFire fork are documented here. Version headings distinguish released versions from development candidates.
 
+## [0.1.3.2] — Development preview (unreleased)
+
+### Fixed
+- Moved sign toggles immediately left of numeric fields and reserved an equal-width invisible spacer on unsigned slider rows.
+- Preserved numeric field widths and sign behavior; mobile alignment verification pending.
+
 ## [0.1.3.1] — Development preview (unreleased)
 
 ### Fixed
