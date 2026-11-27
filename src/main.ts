@@ -286,8 +286,18 @@ async function boot() {
   const fit = () => {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const r = wrap.getBoundingClientRect();
-    // Even dimensions keep video encoders happy.
-    renderer.resize(Math.round(r.width * dpr) & ~1, Math.round(r.height * dpr) & ~1);
+    const size = app.outputSize;
+    const scale = size ? Math.min(r.width / size.w, r.height / size.h, 1 / dpr) : 1;
+    const w = size ? size.w * scale : r.width;
+    const h = size ? size.h * scale : r.height;
+    for (const c of [canvas, overlayCanvas]) {
+      c.style.inset = 'auto';
+      c.style.left = '50%'; c.style.top = '50%';
+      c.style.transform = 'translate(-50%, -50%)';
+      c.style.width = w + 'px'; c.style.height = h + 'px';
+    }
+    // Limit preview to the available viewport and requested pixel dimensions.
+    renderer.resize(Math.max(2, Math.round(w * dpr) & ~1), Math.max(2, Math.round(h * dpr) & ~1));
     overlay.sync();
   };
 
@@ -359,6 +369,7 @@ async function boot() {
   };
   triBtn.classList.add('primary');
 
+  app.on('resolution', fit);
   new ResizeObserver(fit).observe(wrap);
   fit();
   app.setFlame(app.flame);
