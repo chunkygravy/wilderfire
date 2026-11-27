@@ -68,13 +68,20 @@ function cameraCoordinate(label: string, value: number, onChange: (v: number) =>
   const set = (v: number) => {
     current = v;
     // Expand symmetrically for imported, typed or canvas-panned coordinates.
-    if (Math.abs(v) > extent) extent = Math.max(2, Math.abs(v));
+    while (Math.abs(v) >= extent && extent <= Number.MAX_VALUE / 2) extent *= 2;
+    if (Math.abs(v) > extent) extent = Math.abs(v);
     range.min = String(-extent); range.max = String(extent);
     range.value = String(v);
     field.value = String(v);
   };
   const apply = (v: number) => { set(v); onChange(v); };
-  range.oninput = () => { const v = range.valueAsNumber; if (Number.isFinite(v)) apply(v); };
+  range.oninput = () => {
+    const v = range.valueAsNumber;
+    if (!Number.isFinite(v)) return;
+    current = v; field.value = String(v); onChange(v);
+  };
+  // Rescale only after the drag commits, preserving the selected coordinate.
+  range.onchange = () => { set(current); };
   field.onchange = () => {
     const v = field.valueAsNumber;
     if (!Number.isFinite(v)) { set(current); return; }
