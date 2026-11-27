@@ -2,6 +2,14 @@
 
 Notable changes to this WilderFire fork are documented here. Version headings distinguish released versions from development candidates.
 
+## [0.1.4.1] — Development preview (unreleased)
+
+### Fixed
+- Internal preview retains its aspect-matched resolution across sidebar changes, capped at 1024 pixels on the longest side.
+- Single Save PNG action exports selected output dimensions; removed preview-only PNG action.
+- Conservative 1024-pixel GPU export tile cap and reload guidance on device loss.
+- Mobile validation pending; smaller tiles can increase render time and disable single-tile motion blur for larger images.
+
 ## [0.1.4] — Development preview (unreleased)
 
 ### Added
@@ -20,7 +28,7 @@ Notable changes to this WilderFire fork are documented here. Version headings di
 - Center X/Y slider ranges now double symmetrically when an endpoint is reached and the drag is committed.
 - Typed and externally updated coordinates expand to the next larger doubled range instead of becoming the endpoint.
 - Live dragging retains the current scale until release; the selected coordinate is preserved.
-- Automated and mobile validation pending.
+- User confirmed progressive camera range expansion works as expected.
 
 ## [0.1.3.3] — Development preview (unreleased)
 

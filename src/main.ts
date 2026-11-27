@@ -296,8 +296,12 @@ async function boot() {
       c.style.transform = 'translate(-50%, -50%)';
       c.style.width = w + 'px'; c.style.height = h + 'px';
     }
-    // Limit preview to the available viewport and requested pixel dimensions.
-    renderer.resize(Math.max(2, Math.round(w * dpr) & ~1), Math.max(2, Math.round(h * dpr) & ~1));
+    // Keep internal preview independent of sidebar and viewport size.
+    const previewScale = size ? Math.min(1, 1024 / Math.max(size.w, size.h)) : 1;
+    renderer.resize(
+      Math.max(2, Math.round(size ? size.w * previewScale : w * dpr) & ~1),
+      Math.max(2, Math.round(size ? size.h * previewScale : h * dpr) & ~1));
+
     overlay.sync();
   };
 

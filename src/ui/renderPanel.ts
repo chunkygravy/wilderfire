@@ -486,25 +486,7 @@ export function buildRenderPanel(app: App, root: HTMLElement) {
   const io = el('div', 'section');
   io.append(el('h3', '', 'Export / Import'));
   const ioRow = el('div', 'btn-row');
-  const pngBtn = el('button', 'primary', '⬇ Preview PNG');
   const baseName = () => (app.flame.name || 'wilderfire').replace(/[\\/:*?"<>|]+/g, '_');
-  pngBtn.title = 'Save the render as a PNG — the flame itself is embedded in the file (drop the PNG on the canvas to load it again)';
-  pngBtn.onclick = async () => {
-    // Ask for the destination first: the dialog needs the click's user gesture.
-    const target = await pickSave({ suggestedName: `${baseName()}.png`, description: 'PNG image', mime: 'image/png', ext: '.png' });
-    if (!target) return;
-    pngBtn.disabled = true;
-    try {
-      const blob = await app.renderer.exportPNG();
-      if (!blob) throw new Error('the render could not be read back');
-      const { pngWithFlame } = await import('../core/pngMeta');
-      const png = await pngWithFlame(blob, app.flame, app.getCurves());
-      await target.write(png);
-      toast(savedMessage(target, png));
-    } catch (e) {
-      toast(`⚠ PNG not saved: ${(e as Error).message}`, 'error');
-    } finally { pngBtn.disabled = false; }
-  };
   const jsonBtn = el('button', '', '⬇ JSON');
   jsonBtn.onclick = () =>
     saveText(flameToJSON(app.flame), { suggestedName: `${baseName()}.json`, description: 'WilderFire flame (JSON)', mime: 'application/json', ext: '.json' });
@@ -525,7 +507,7 @@ export function buildRenderPanel(app: App, root: HTMLElement) {
     fileInp.value = '';
   };
   loadBtn.onclick = () => fileInp.click();
-  ioRow.append(pngBtn, jsonBtn, xmlBtn, loadBtn, fileInp);
+  ioRow.append(jsonBtn, xmlBtn, loadBtn, fileInp);
   io.append(ioRow);
 
   // Hi-res tiled export (src/ui/hiresExport.ts) + batch queue (src/ui/batchExport.ts)
@@ -601,13 +583,13 @@ export function buildRenderPanel(app: App, root: HTMLElement) {
   alphaLab.prepend(alphaChk);
   alphaLab.title = 'Transparent background';
   alphaLab.style.color = 'var(--fg-dim)';
-  const hiBtn = el('button', '', '⬇ Hi-res PNG');
+  const hiBtn = el('button', 'primary', '⬇ Save PNG');
   const batchBtn = el('button', '', '⬇ Batch…');
   batchBtn.title = 'Export several flames (current + library) at several sizes in one go';
   hiRow.append(hiBtn, hiQ, alphaLab, batchBtn);
   io.append(hiRow);
   const hiStatus = el('div', 'hint',
-    'Load accepts WilderFire JSON and .flame XML (flam3 / Apophysis compatible). Hi-res PNG uses the selected output dimensions; Preview PNG saves the live preview; Batch… queues several flames and sizes into a folder.');
+    'Load accepts WilderFire JSON and .flame XML (flam3 / Apophysis compatible). Save PNG uses the selected output dimensions; Batch… queues several flames and sizes into a folder.');
   io.append(hiStatus);
   batchBtn.onclick = () => openBatchExport(app);
 
@@ -646,8 +628,8 @@ export function buildRenderPanel(app: App, root: HTMLElement) {
       toast(`${savedMessage(target, blob)} — ${fullW}×${fullH}`);
     } catch (e) {
       busy.close();
-      hiStatus.textContent = '⚠ ' + (e as Error).message;
-      toast(`⚠ Hi-res PNG not saved: ${(e as Error).message}`, 'error');
+      hiStatus.textContent = '⚠ ' + (e as Error).message + (/device.*lost/i.test((e as Error).message) ? ' — Reload WilderFire before retrying.' : '');
+      toast(`⚠ PNG not saved: ${(e as Error).message}`, 'error');
     } finally {
       r.exporting = false;
       r.setFlame(app.flame);
