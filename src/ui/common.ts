@@ -119,7 +119,7 @@ export function formatNum(v: number): string {
   return String(Math.round(v * 10000) / 10000);
 }
 
-export type AppEvent = 'flame' | 'select' | 'tone' | 'history' | 'preview' | 'solo';
+export type AppEvent = 'flame' | 'select' | 'tone' | 'history' | 'preview' | 'solo' | 'resolution';
 
 const HISTORY_MAX = 100;
 const COALESCE_MS = 700;
@@ -149,6 +149,8 @@ export interface EngineAPI {
 export class App {
   flame!: Flame;
   renderer!: FlameRenderer;
+  outputSize: { w: number; h: number } | null = null;
+  setOutputSize(w: number, h: number) { this.outputSize = { w, h }; this.emit('resolution'); }
   layerIdx = 0; // active layer
   selected = 0; // xform index within the active layer; -1 => final xform
   xformClipboard: XForm | null = null; // survives flame switches
