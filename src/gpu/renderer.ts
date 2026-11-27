@@ -50,6 +50,8 @@ export interface RenderStats {
 
 export class FlameRenderer {
   private device!: GPUDevice;
+  private lostMessage: string | null = null;
+  private checkDevice(stage: string) { if (this.lostMessage) throw new Error(`GPU device lost during ${stage}: ${this.lostMessage}. Reload WilderFire.`); }
   private context!: GPUCanvasContext;
   private format!: GPUTextureFormat;
   private canvas: HTMLCanvasElement;
@@ -223,6 +225,7 @@ export class FlameRenderer {
         maxStorageBuffersPerShaderStage: Math.min(Math.max(adapter.limits.maxStorageBuffersPerShaderStage, 8), 10),
       },
     });
+    void this.device.lost.then(info => { this.lostMessage = info.message || info.reason; this.onError?.('GPU device lost: ' + this.lostMessage + ' — reload WilderFire'); });
     this.device.addEventListener('uncapturederror', (e) => {
       console.error('WebGPU error:', (e as GPUUncapturedErrorEvent).error.message);
       this.onError?.((e as GPUUncapturedErrorEvent).error.message);
@@ -1314,6 +1317,9 @@ export class FlameRenderer {
   }): Promise<Uint8ClampedArray<ArrayBuffer>> {
     const d = this.device;
     if (!this.flame || !this.computePipeline) throw new Error('No compiled flame.');
+    this.checkDevice('export setup');
+    await d.queue.onSubmittedWorkDone();
+    this.checkDevice('preview drain');
     await this.ready();
 
     const solid = this.solid;
@@ -1367,22 +1373,24 @@ export class FlameRenderer {
 
     this.reseedPoints();
     const tile = { tileX: o.tileX, tileY: o.tileY, fullW: o.fullW, fullH: o.fullH, tileW: o.tileW, tileH: o.tileH };
-    const perPass = this.nPoints * this.itersPerPass;
+    const exportIters = Math.max(1, Math.min(8, this.itersPerPass));
+    const perPass = this.nPoints * exportIters;
     // enough passes for spp plotted samples per pixel on top of the fuse iterations
-    let passes = Math.max(2, Math.min(Math.ceil((o.spp * o.fullW * o.fullH + this.fuseDebt) / perPass), 40000));
+    let passes = Math.max(2, Math.min(Math.ceil((o.spp * o.fullW * o.fullH + this.fuseDebt) / perPass), 40000 * Math.ceil(this.itersPerPass / exportIters)));
     const passesTotal = passes;
     let done = 0;
-    const CHUNK = 32;
+    let chunk = 1;
     let first = true;
     while (passes > 0) {
       // solid shadows: until enough points have plotted (fuse + SHADOW_BOUNDS_ITERS per walker) the kernel only
       // collects the light-space bounds (mode 1) — short chunks so little is lost to that phase
       const collecting = this.shadowCasters() > 0 && !this.offShadowsReady && done < this.nPoints * FlameRenderer.SHADOW_BOUNDS_ITERS;
       this.shadowMode = collecting ? 1 : 2;
-      const nowP = Math.min(collecting ? 2 : CHUNK, passes);
+      this.checkDevice('export compute');
+      const nowP = Math.min(collecting ? 1 : chunk, passes);
       passes -= nowP;
       done += this.countIters(nowP * perPass);
-      this.writeUniforms(done / (o.fullW * o.fullH), tile, o.transparent);
+      this.writeUniforms(done / (o.fullW * o.fullH), tile, o.transparent, exportIters);
       const enc = d.createCommandEncoder();
       // the shadow maps are light-space (view independent): the tiles of one export share them — cleared only when
       // the flame changed (setFlame) or the buffers were re-created
@@ -1392,14 +1400,20 @@ export class FlameRenderer {
       cp.setBindGroup(0, computeBG);
       for (let i = 0; i < nowP; i++) cp.dispatchWorkgroups(Math.ceil(this.nPoints / 256));
       cp.end();
+      const started = performance.now();
       d.queue.submit([enc.finish()]);
       // Wait between chunks so submissions stay short and the tab responsive.
       await d.queue.onSubmittedWorkDone();
+      this.checkDevice('export compute completion');
+      const elapsed = performance.now() - started;
+      if (elapsed > 40) chunk = Math.max(1, Math.floor(chunk / 2));
+      else if (elapsed < 12) chunk = Math.min(4, chunk + 1);
       o.onProgress?.(1 - passes / passesTotal);
+      await new Promise<void>(resolve => setTimeout(resolve, 0));
     }
 
     if (solid && this.shadowCasters() > 0) this.offShadowsReady = true;
-    this.writeUniforms(done / (o.fullW * o.fullH), tile, o.transparent);
+    this.writeUniforms(done / (o.fullW * o.fullH), tile, o.transparent, exportIters);
     const bpr = Math.ceil((o.tileW * 4) / 256) * 256;
     const rb = d.createBuffer({ size: bpr * o.tileH, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ });
     const enc = d.createCommandEncoder();
@@ -1411,15 +1425,20 @@ export class FlameRenderer {
       { width: o.tileW, height: o.tileH },
     );
     d.queue.submit([enc.finish()]);
+    try {
+    this.checkDevice('PNG readback');
     await rb.mapAsync(GPUMapMode.READ);
+    this.checkDevice('PNG readback');
     const src = new Uint8Array(rb.getMappedRange());
     const out = new Uint8ClampedArray(o.tileW * o.tileH * 4);
     for (let y = 0; y < o.tileH; y++) {
       out.set(src.subarray(y * bpr, y * bpr + o.tileW * 4), y * o.tileW * 4);
     }
     rb.unmap();
-    rb.destroy();
     return out;
+    } catch (e) {
+      throw new Error('Export readback: ' + (e as Error).message);
+    } finally { rb.destroy(); }
   }
 
   /** Encode the live view's tonemap (density or solid) to `view`. */
@@ -1448,7 +1467,7 @@ export class FlameRenderer {
 
   private frame = (t: number) => {
     this.raf = requestAnimationFrame(this.frame);
-    if (this.exporting) return;
+    if (this.exporting || this.lostMessage) return;
     const f = this.flame;
     if (!f || !this.computePipeline || !this.computeBG || !this.renderBG) return;
 
