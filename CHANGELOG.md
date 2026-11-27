@@ -2,6 +2,16 @@
 
 Notable changes to this WilderFire fork are documented here. Version headings distinguish released versions from development candidates.
 
+## [0.1.3.3] — Development preview (unreleased)
+
+### Added
+- Center X and Center Y sliders aligned with existing camera controls.
+- Initial slider range −2 to +2, expanding symmetrically when larger coordinates are entered or loaded or reached by canvas panning; manual numeric entry remains unrestricted.
+- Existing sign reversal and camera synchronization retained.
+
+### Validation
+- Automated build and mobile testing pending.
+
 ## [0.1.3.2] — Development preview (unreleased)
 
 ### Fixed
