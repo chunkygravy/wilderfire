@@ -12,6 +12,21 @@ export function el<K extends keyof HTMLElementTagNameMap>(
   return e;
 }
 
+// Mobile keyboards may omit the minus key even for signed number inputs.
+export function signButton(field: HTMLInputElement, apply: (v: number) => void): HTMLButtonElement {
+  const btn = el('button', '', '±');
+  btn.type = 'button';
+  btn.title = 'Reverse numeric sign';
+  btn.setAttribute('aria-label', 'Reverse sign of ' + (field.getAttribute('aria-label') ?? 'value'));
+  btn.style.flex = '0 0 26px';
+  btn.style.padding = '0';
+  btn.onclick = () => {
+    const v = field.valueAsNumber;
+    if (Number.isFinite(v)) apply(-v);
+  };
+  return btn;
+}
+
 export interface SliderOpts {
   label: string;
   min: number;
@@ -70,6 +85,10 @@ export function slider(o: SliderOpts): { root: HTMLElement; set: (v: number) => 
   });
   set(current);
   root.append(lab, inp, val);
+  if (o.min < 0 && o.max > 0) root.append(signButton(val, (v) => {
+    if (v < o.min || v > o.max) return;
+    set(v); o.onInput(v);
+  }));
   return { root, set };
 }
 
