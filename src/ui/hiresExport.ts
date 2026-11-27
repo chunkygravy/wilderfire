@@ -62,7 +62,9 @@ export async function renderHiRes(renderer: FlameRenderer, flame: Flame, o: HiRe
   out.width = fullW;
   out.height = fullH;
   const ctx = out.getContext('2d')!;
-  const plan = planTiles(fullW, fullH, renderer.exportTileLimit(), PAD);
+  const limits = renderer.exportTileLimit();
+  // Conservative tile cap: reported per-buffer limits do not reflect total available GPU memory.
+  const plan = planTiles(fullW, fullH, { maxCells: Math.min(limits.maxCells, 1024 * 1024), maxSide: Math.min(limits.maxSide, 1024) }, PAD);
   const TILE = plan.tile, tilesX = plan.tilesX, tilesY = plan.tilesY;
   const single = tilesX === 1 && tilesY === 1;
   let n = 0;
