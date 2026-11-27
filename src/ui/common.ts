@@ -31,19 +31,46 @@ export function slider(o: SliderOpts): { root: HTMLElement; set: (v: number) => 
   inp.max = String(o.max);
   inp.step = String(o.step);
   inp.value = String(o.value);
-  const val = el('span', 'val');
-  const fmt = o.fmt ?? ((v: number) => v.toFixed(2));
-  val.textContent = fmt(o.value);
+  inp.style.minWidth = '0';
+  inp.setAttribute('aria-label', o.label + ' slider');
+  const val = el('input');
+  val.type = 'number';
+  val.step = 'any';
+  val.min = String(o.min);
+  val.max = String(o.max);
+  val.setAttribute('aria-label', o.label);
+  val.style.flex = '0 0 76px';
+  val.style.width = '76px';
+  val.style.minWidth = '0';
+  let current = o.value;
+  const set = (v: number) => {
+    current = v;
+    inp.value = String(v);
+    val.value = String(v);
+    val.title = o.fmt ? o.fmt(v) : String(v);
+  };
   inp.addEventListener('input', () => {
-    const v = parseFloat(inp.value);
-    val.textContent = fmt(v);
+    const v = inp.valueAsNumber;
+    set(v);
     o.onInput(v);
   });
+  val.addEventListener('change', () => {
+    const v = val.valueAsNumber;
+    if (!Number.isFinite(v) || v < o.min || v > o.max) {
+      set(current);
+      return;
+    }
+    // Preserve integer-only controls; fractional controls accept direct precision.
+    if (Number.isInteger(o.step) && !Number.isInteger(v)) {
+      set(current);
+      return;
+    }
+    set(v);
+    o.onInput(v);
+  });
+  set(current);
   root.append(lab, inp, val);
-  return {
-    root,
-    set: (v: number) => { inp.value = String(v); val.textContent = fmt(v); },
-  };
+  return { root, set };
 }
 
 export function numberInput(value: number, step: number, onChange: (v: number) => void): HTMLInputElement {
