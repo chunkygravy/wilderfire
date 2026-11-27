@@ -2,6 +2,14 @@
 
 Notable changes to this WilderFire fork are documented here. Version headings distinguish released versions from development candidates.
 
+## [0.1.4.3] — Development preview (unreleased)
+
+- Adaptive export iterations and dispatch chunks, tracking total requested samples.
+- Configurable tile cap (1024–4096, default 2048), bounded by GPU limits.
+- Draft and Quick presets, editable SPP, elapsed time and estimated remaining time.
+- Cancellation between ordinary render submissions; motion blur cancellation remains limited.
+- Mobile performance and stability validation pending.
+
 ## [0.1.4.2] — Development preview (unreleased)
 
 ### Fixed
