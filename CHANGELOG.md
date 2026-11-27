@@ -2,6 +2,14 @@
 
 Notable changes to this WilderFire fork are documented here. Version headings distinguish released versions from development candidates.
 
+## [0.1.3.4] — Development preview (unreleased)
+
+### Fixed
+- Center X/Y slider ranges now double symmetrically when an endpoint is reached and the drag is committed.
+- Typed and externally updated coordinates expand to the next larger doubled range instead of becoming the endpoint.
+- Live dragging retains the current scale until release; the selected coordinate is preserved.
+- Automated and mobile validation pending.
+
 ## [0.1.3.3] — Development preview (unreleased)
 
 ### Added
