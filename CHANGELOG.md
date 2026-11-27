@@ -12,6 +12,8 @@ Notable changes to this WilderFire fork are documented here. Version headings di
 - CI and Build WilderFire passed; pull request #3 merged.
 - 2026-11-27: User confirmed editable fields work in Depth of Field, Tone and Engine after the deployed application updated.
 - Initial update delay was consistent with caching, but its cause was not independently verified.
+- User confirmed bidirectional slider/field synchronization, viewport updates, integer validation, field sizing and continued camera operation.
+- Known mobile issue: user cannot enter a negative sign using the phone numeric keyboard; cause not independently verified.
 - Independent sliders, converted display units and detailed numeric precision remain to be audited.
 
 ## [0.1.2] — Development preview (unreleased)
