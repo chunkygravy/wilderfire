@@ -2,6 +2,14 @@
 
 Notable changes to this WilderFire fork are documented here. Version headings distinguish released versions from development candidates.
 
+## [0.1.4.2] — Development preview (unreleased)
+
+### Fixed
+- Offscreen rendering uses at most eight iterations per dispatch and adaptive chunks of one to four dispatches, retaining the requested sample target.
+- Drain pending GPU work before export; detect device loss, stop live frame submissions and report export stage.
+- Release readback buffer on failure.
+- Device testing pending; export may take longer. GPU watchdog hypothesis remains unconfirmed.
+
 ## [0.1.4.1] — Development preview (unreleased)
 
 ### Fixed
