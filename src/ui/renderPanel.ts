@@ -486,7 +486,7 @@ export function buildRenderPanel(app: App, root: HTMLElement) {
   const io = el('div', 'section');
   io.append(el('h3', '', 'Export / Import'));
   const ioRow = el('div', 'btn-row');
-  const pngBtn = el('button', 'primary', '⬇ Save PNG');
+  const pngBtn = el('button', 'primary', '⬇ Preview PNG');
   const baseName = () => (app.flame.name || 'wilderfire').replace(/[\\/:*?"<>|]+/g, '_');
   pngBtn.title = 'Save the render as a PNG — the flame itself is embedded in the file (drop the PNG on the canvas to load it again)';
   pngBtn.onclick = async () => {
@@ -531,12 +531,63 @@ export function buildRenderPanel(app: App, root: HTMLElement) {
   // Hi-res tiled export (src/ui/hiresExport.ts) + batch queue (src/ui/batchExport.ts)
   const hiRow = el('div', 'btn-row');
   const hiScale = el('select') as HTMLSelectElement;
-  hiScale.title = 'Output size: a multiple of the canvas, or a fixed 16:9 frame (the flame is scaled to the width)';
-  for (const so of SIZE_OPTIONS) {
+  hiScale.title = 'Output resolution preset';
+  for (const so of [...SIZE_OPTIONS, { label: '720p', value: '1280x720' }, { label: '8K', value: '7680x4320' }, { label: 'Square 2048', value: '2048x2048' }, { label: 'Portrait 1080p', value: '1080x1920' }, { label: 'Custom', value: 'custom' }]) {
     const o = el('option', '', so.label) as HTMLOptionElement;
     o.value = so.value;
     hiScale.append(o);
   }
+  const resolution = el('div', 'section');
+  resolution.append(el('h3', '', 'Render Resolution'));
+  const presetRow = el('div', 'row');
+  presetRow.append(el('label', '', 'Preset'), hiScale);
+  resolution.append(presetRow);
+  const widthField = el('input'), heightField = el('input');
+  for (const field of [widthField, heightField]) {
+    field.type = 'number'; field.min = '1'; field.max = '16384'; field.step = '1';
+    field.style.flex = '1'; field.style.minWidth = '0';
+  }
+  widthField.setAttribute('aria-label', 'Output width');
+  heightField.setAttribute('aria-label', 'Output height');
+  for (const [label, field] of [['Width (px)', widthField], ['Height (px)', heightField]] as const) {
+    const row = el('div', 'row'); row.append(el('label', '', label), field); resolution.append(row);
+  }
+  const lock = el('input'); lock.type = 'checkbox';
+  const lockLabel = el('label'); lockLabel.append(lock, ' Lock aspect ratio');
+  const sizeHint = el('div', 'hint');
+  resolution.append(lockLabel, sizeHint);
+  let selected = { w: 1920, h: 1080 };
+  let ratio = selected.w / selected.h;
+  const valid = (n: number) => Number.isInteger(n) && n >= 1 && n <= 16384;
+  const applySize = (w: number, h: number) => {
+    if (!valid(w) || !valid(h) || w * h > 67108864) {
+      widthField.value = String(selected.w); heightField.value = String(selected.h);
+      toast('Resolution must be 1–16384 px per side and at most 64 Mi pixels.', 'error'); return false;
+    }
+    selected = { w, h };
+    widthField.value = String(w); heightField.value = String(h);
+    sizeHint.textContent = (w * h / 1e6).toFixed(2) + ' MP · ' + (w / h).toFixed(3) + ':1';
+    app.setOutputSize(w, h); return true;
+  };
+  const editSize = (axis: 'w' | 'h') => {
+    let w = widthField.valueAsNumber, h = heightField.valueAsNumber;
+    if (lock.checked) {
+      if (axis === 'w') h = Math.max(1, Math.round(w / ratio));
+      else w = Math.max(1, Math.round(h * ratio));
+    }
+    if (applySize(w, h)) hiScale.value = 'custom';
+  };
+  widthField.onchange = () => editSize('w');
+  heightField.onchange = () => editSize('h');
+  lock.onchange = () => { ratio = selected.w / selected.h; };
+  hiScale.onchange = () => {
+    if (hiScale.value === 'custom') return;
+    const { w, h } = resolveSize(hiScale.value, app.renderer.width, app.renderer.height);
+    if (applySize(w, h)) ratio = w / h;
+    else hiScale.value = 'custom';
+  };
+  hiScale.value = '1920x1080';
+  applySize(1920, 1080);
   const hiQ = el('select') as HTMLSelectElement;
   for (const q of QUALITY_OPTIONS) {
     const o = el('option', '', q.label) as HTMLOptionElement;
@@ -553,10 +604,10 @@ export function buildRenderPanel(app: App, root: HTMLElement) {
   const hiBtn = el('button', '', '⬇ Hi-res PNG');
   const batchBtn = el('button', '', '⬇ Batch…');
   batchBtn.title = 'Export several flames (current + library) at several sizes in one go';
-  hiRow.append(hiBtn, hiScale, hiQ, alphaLab, batchBtn);
+  hiRow.append(hiBtn, hiQ, alphaLab, batchBtn);
   io.append(hiRow);
   const hiStatus = el('div', 'hint',
-    'Load accepts WilderFire JSON and .flame XML (flam3 / Apophysis compatible). Hi-res renders tiled at up to 4× screen resolution; Batch… queues several flames and sizes into a folder.');
+    'Load accepts WilderFire JSON and .flame XML (flam3 / Apophysis compatible). Hi-res PNG uses the selected output dimensions; Preview PNG saves the live preview; Batch… queues several flames and sizes into a folder.');
   io.append(hiStatus);
   batchBtn.onclick = () => openBatchExport(app);
 
@@ -564,7 +615,7 @@ export function buildRenderPanel(app: App, root: HTMLElement) {
     const r = app.renderer;
     const spp = parseInt(hiQ.value);
     const transparent = alphaChk.checked;
-    const { w: fullW, h: fullH } = resolveSize(hiScale.value, r.width, r.height);
+    const { w: fullW, h: fullH } = selected;
     const target = await pickSave({ suggestedName: `${baseName()}-${fullW}x${fullH}.png`, description: 'PNG image', mime: 'image/png', ext: '.png' });
     if (!target) return;
     hiBtn.disabled = true;
@@ -605,7 +656,7 @@ export function buildRenderPanel(app: App, root: HTMLElement) {
   };
 
   const solidSec = buildSolidSection(app);
-  root.append(cam, dof, solidSec, tone, perf, io);
+  root.append(cam, dof, solidSec, tone, perf, resolution, io);
 
   app.on('flame', (src) => {
     if (src === SRC) return;

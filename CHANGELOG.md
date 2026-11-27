@@ -2,6 +2,18 @@
 
 Notable changes to this WilderFire fork are documented here. Version headings distinguish released versions from development candidates.
 
+## [0.1.4] — Development preview (unreleased)
+
+### Added
+- Independent still-image width and height, optional aspect lock, presets and megapixel readout.
+- Centered aspect-matched preview and transform overlay, limited to viewport and output dimensions.
+- Exact selected dimensions for Hi-res PNG; Preview PNG retains quick preview capture.
+- Initial 1920×1080 output; provisional limits of 16384 pixels per side and 64 Mi pixels total. Device canvas limits may be lower.
+- Batch and animation export controls unchanged.
+
+### Validation
+- Automated build and mobile preview/export testing pending.
+
 ## [0.1.3.4] — Development preview (unreleased)
 
 ### Fixed
