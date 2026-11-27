@@ -55,19 +55,33 @@ function cameraSlider(o: Parameters<typeof slider>[0], mapping?: {
 
 function cameraCoordinate(label: string, value: number, onChange: (v: number) => void) {
   const root = el('div', 'row');
+  const range = el('input');
+  range.type = 'range'; range.step = 'any';
+  range.style.minWidth = '0';
+  range.setAttribute('aria-label', label + ' slider');
   const field = el('input');
   field.type = 'number'; field.step = 'any';
   field.setAttribute('aria-label', label);
-  field.style.flex = '1'; field.style.minWidth = '0';
+  field.style.flex = '0 0 76px'; field.style.width = '76px'; field.style.minWidth = '0';
   let current = value;
-  const set = (v: number) => { current = v; field.value = String(v); };
+  let extent = 2;
+  const set = (v: number) => {
+    current = v;
+    // Expand symmetrically for imported, typed or canvas-panned coordinates.
+    if (Math.abs(v) > extent) extent = Math.max(2, Math.abs(v));
+    range.min = String(-extent); range.max = String(extent);
+    range.value = String(v);
+    field.value = String(v);
+  };
+  const apply = (v: number) => { set(v); onChange(v); };
+  range.oninput = () => { const v = range.valueAsNumber; if (Number.isFinite(v)) apply(v); };
   field.onchange = () => {
     const v = field.valueAsNumber;
     if (!Number.isFinite(v)) { set(current); return; }
-    set(v); onChange(v);
+    apply(v);
   };
   set(value);
-  root.append(el('label', '', label), signButton(field, (v) => { set(v); onChange(v); }), field);
+  root.append(el('label', '', label), range, signButton(field, apply), field);
   return { root, set };
 }
 
