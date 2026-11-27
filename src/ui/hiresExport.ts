@@ -10,7 +10,7 @@ export const SIZE_OPTIONS: { label: string; value: string }[] = [
   { label: '1080p', value: '1920x1080' }, { label: '1440p', value: '2560x1440' }, { label: '4K', value: '3840x2160' },
 ];
 export const QUALITY_OPTIONS: { label: string; value: string }[] = [
-  { label: 'Fast', value: '250' }, { label: 'Good', value: '700' }, { label: 'Ultra', value: '1500' },
+  { label: 'Draft', value: '25' }, { label: 'Quick', value: '100' }, { label: 'Fast', value: '250' }, { label: 'Good', value: '700' }, { label: 'Ultra', value: '1500' },
 ];
 
 /** Resolve a SIZE_OPTIONS value against the live canvas size (even dimensions keep encoders happy). */
@@ -27,6 +27,7 @@ export interface HiResOpts {
   w: number; h: number;
   /** plotted samples per pixel */
   spp: number;
+  tileLimit?: number;
   transparent?: boolean;
   /** called after every tile: done/total tiles */
   onTile?: (done: number, total: number) => void;
@@ -64,7 +65,8 @@ export async function renderHiRes(renderer: FlameRenderer, flame: Flame, o: HiRe
   const ctx = out.getContext('2d')!;
   const limits = renderer.exportTileLimit();
   // Conservative tile cap: reported per-buffer limits do not reflect total available GPU memory.
-  const plan = planTiles(fullW, fullH, { maxCells: Math.min(limits.maxCells, 1024 * 1024), maxSide: Math.min(limits.maxSide, 1024) }, PAD);
+  const cap = o.tileLimit ?? 2048;
+  const plan = planTiles(fullW, fullH, { maxCells: Math.min(limits.maxCells, cap * cap), maxSide: Math.min(limits.maxSide, cap) }, PAD);
   const TILE = plan.tile, tilesX = plan.tilesX, tilesY = plan.tilesY;
   const single = tilesX === 1 && tilesY === 1;
   let n = 0;
@@ -82,7 +84,7 @@ export async function renderHiRes(renderer: FlameRenderer, flame: Flame, o: HiRe
         ? await (await import('./motionBlur')).renderMotionBlurred(renderer, flame, o.motionBlur, fullW, fullH, o.spp, o.transparent)
         : await renderer.renderRegion({
           fullW, fullH, tileX: x0 - pad, tileY: y0 - pad,
-          tileW: pw, tileH: ph, spp: o.spp, transparent: o.transparent,
+          tileW: pw, tileH: ph, spp: o.spp, transparent: o.transparent, signal: o.signal,
           onProgress: o.onProgress && ((f) => o.onProgress!((tileIdx + f) / tiles)),
         });
       const img = single ? new ImageData(px, tw, th) : new ImageData(tw, th);

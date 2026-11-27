@@ -577,6 +577,15 @@ export function buildRenderPanel(app: App, root: HTMLElement) {
     if (q.value === '700') o.selected = true;
     hiQ.append(o);
   }
+  const sppField = el('input') as HTMLInputElement;
+  sppField.type = 'number'; sppField.min = '1'; sppField.max = '100000'; sppField.step = '1'; sppField.value = hiQ.value; sppField.style.width = '76px'; sppField.title = 'Samples per pixel';
+  const customQ = el('option', '', 'Custom') as HTMLOptionElement; customQ.value = 'custom'; hiQ.append(customQ);
+  hiQ.onchange = () => { if (hiQ.value !== 'custom') sppField.value = hiQ.value; };
+  sppField.onchange = () => { hiQ.value = QUALITY_OPTIONS.some(q => q.value === sppField.value) ? sppField.value : 'custom'; };
+  const tileSelect = el('select') as HTMLSelectElement;
+  for (const size of [1024, 1536, 2048, 3072, 4096]) { const opt = el('option', '', String(size)) as HTMLOptionElement; opt.value = String(size); tileSelect.append(opt); }
+  tileSelect.value = '2048'; tileSelect.title = 'Maximum GPU tile side (larger uses more memory)';
+  const cancelBtn = el('button', '', 'Cancel export'); cancelBtn.disabled = true;
   const alphaChk = el('input') as HTMLInputElement;
   alphaChk.type = 'checkbox';
   const alphaLab = el('label', '', ' alpha');
@@ -588,6 +597,7 @@ export function buildRenderPanel(app: App, root: HTMLElement) {
   batchBtn.title = 'Export several flames (current + library) at several sizes in one go';
   hiRow.append(hiBtn, hiQ, alphaLab, batchBtn);
   io.append(hiRow);
+  const exportSettings = el('div', 'row'); exportSettings.append(el('label', '', 'SPP'), sppField, el('label', '', 'Tile cap'), tileSelect, cancelBtn); io.append(exportSettings);
   const hiStatus = el('div', 'hint',
     'Load accepts WilderFire JSON and .flame XML (flam3 / Apophysis compatible). Save PNG uses the selected output dimensions; Batch… queues several flames and sizes into a folder.');
   io.append(hiStatus);
@@ -595,12 +605,15 @@ export function buildRenderPanel(app: App, root: HTMLElement) {
 
   hiBtn.onclick = async () => {
     const r = app.renderer;
-    const spp = parseInt(hiQ.value);
+    const spp = sppField.valueAsNumber;
+    if (!Number.isInteger(spp) || spp < 1 || spp > 100000) { toast('Enter a valid SPP (1–100000)', 'error'); return; }
     const transparent = alphaChk.checked;
     const { w: fullW, h: fullH } = selected;
     const target = await pickSave({ suggestedName: `${baseName()}-${fullW}x${fullH}.png`, description: 'PNG image', mime: 'image/png', ext: '.png' });
     if (!target) return;
     hiBtn.disabled = true;
+    const controller = new AbortController(); cancelBtn.disabled = false; cancelBtn.onclick = () => controller.abort();
+    const started = performance.now();
     if (app.solo) app.setSolo(false); // exports always render the whole flame
     r.exporting = true;
     // the file exists (empty) from the moment the dialog closed: say so while the tiles render and the PNG is written
@@ -608,7 +621,7 @@ export function buildRenderPanel(app: App, root: HTMLElement) {
     try {
       const tl = app.flame.motionBlur ? app.timeline() : null;
       const blob = await renderHiRes(r, app.flame, {
-        w: fullW, h: fullH, spp, transparent, curves: app.getCurves(),
+        w: fullW, h: fullH, spp, transparent, signal: controller.signal, tileLimit: Number(tileSelect.value), curves: app.getCurves(),
         ...(tl ? { motionBlur: { evalAt: tl.evalAt, t: tl.t0, fps: 25 } } : {}),
         onTile: (n, total) => {
           hiStatus.textContent = total > 1 ? `Hi-res: tile ${n}/${total} (${fullW}×${fullH})…` : `Hi-res: rendered ${fullW}×${fullH}, encoding…`;
@@ -616,8 +629,11 @@ export function buildRenderPanel(app: App, root: HTMLElement) {
         },
         onProgress: (f) => {
           const pct = Math.round(f * 100);
-          hiStatus.textContent = `Hi-res: rendering ${fullW}×${fullH}… ${pct} %`;
-          busy.set(`Rendering ${fullW}×${fullH} PNG — ${pct} %… (${target.name} stays empty until it is written)`);
+          const elapsed = (performance.now() - started) / 1000;
+          const eta = f > 0.005 ? Math.ceil(elapsed * (1-f) / f) : 0;
+          const timing = ` — ${Math.floor(elapsed/60)}m ${Math.floor(elapsed%60)}s elapsed${eta ? `, ~${Math.floor(eta/60)}m ${eta%60}s left` : ''}`;
+          hiStatus.textContent = `Hi-res: rendering ${fullW}×${fullH}… ${pct} %${timing}`;
+          busy.set(`Rendering ${fullW}×${fullH} PNG — ${pct} %${timing}… (${target.name} stays empty until it is written)`);
         },
       });
       hiStatus.textContent = 'Saving PNG…';
@@ -633,7 +649,7 @@ export function buildRenderPanel(app: App, root: HTMLElement) {
     } finally {
       r.exporting = false;
       r.setFlame(app.flame);
-      hiBtn.disabled = false;
+      hiBtn.disabled = false; cancelBtn.disabled = true; cancelBtn.onclick = null;
     }
   };
 

@@ -1295,7 +1295,7 @@ export class FlameRenderer {
   async renderRegion(o: {
     fullW: number; fullH: number;
     tileX: number; tileY: number; tileW: number; tileH: number;
-    spp: number; transparent?: boolean;
+    spp: number; transparent?: boolean; signal?: AbortSignal;
     /** called between the render's chunks with the fraction of the requested samples plotted so far (0..1) */
     onProgress?: (frac: number) => void;
   }): Promise<Uint8ClampedArray<ArrayBuffer>> {
@@ -1312,7 +1312,7 @@ export class FlameRenderer {
   private async renderRegionInner(o: {
     fullW: number; fullH: number;
     tileX: number; tileY: number; tileW: number; tileH: number;
-    spp: number; transparent?: boolean;
+    spp: number; transparent?: boolean; signal?: AbortSignal;
     onProgress?: (frac: number) => void;
   }): Promise<Uint8ClampedArray<ArrayBuffer>> {
     const d = this.device;
@@ -1373,22 +1373,23 @@ export class FlameRenderer {
 
     this.reseedPoints();
     const tile = { tileX: o.tileX, tileY: o.tileY, fullW: o.fullW, fullH: o.fullH, tileW: o.tileW, tileH: o.tileH };
-    const exportIters = Math.max(1, Math.min(8, this.itersPerPass));
-    const perPass = this.nPoints * exportIters;
+    let exportIters = Math.max(1, Math.min(8, this.itersPerPass));
     // enough passes for spp plotted samples per pixel on top of the fuse iterations
-    let passes = Math.max(2, Math.min(Math.ceil((o.spp * o.fullW * o.fullH + this.fuseDebt) / perPass), 40000 * Math.ceil(this.itersPerPass / exportIters)));
-    const passesTotal = passes;
+    const target = Math.max(2 * this.nPoints * exportIters, o.spp * o.fullW * o.fullH + this.fuseDebt);
+    let remaining = target;
     let done = 0;
     let chunk = 1;
     let first = true;
-    while (passes > 0) {
+    while (remaining > 0) {
+      if (o.signal?.aborted) throw new DOMException('Export cancelled', 'AbortError');
+      const perPass = this.nPoints * exportIters;
       // solid shadows: until enough points have plotted (fuse + SHADOW_BOUNDS_ITERS per walker) the kernel only
       // collects the light-space bounds (mode 1) — short chunks so little is lost to that phase
       const collecting = this.shadowCasters() > 0 && !this.offShadowsReady && done < this.nPoints * FlameRenderer.SHADOW_BOUNDS_ITERS;
       this.shadowMode = collecting ? 1 : 2;
       this.checkDevice('export compute');
-      const nowP = Math.min(collecting ? 1 : chunk, passes);
-      passes -= nowP;
+      const nowP = Math.min(collecting ? 1 : chunk, Math.ceil(remaining / perPass));
+      remaining -= nowP * perPass;
       done += this.countIters(nowP * perPass);
       this.writeUniforms(done / (o.fullW * o.fullH), tile, o.transparent, exportIters);
       const enc = d.createCommandEncoder();
@@ -1406,10 +1407,15 @@ export class FlameRenderer {
       await d.queue.onSubmittedWorkDone();
       this.checkDevice('export compute completion');
       const elapsed = performance.now() - started;
-      if (elapsed > 40) chunk = Math.max(1, Math.floor(chunk / 2));
-      else if (elapsed < 12) chunk = Math.min(4, chunk + 1);
-      o.onProgress?.(1 - passes / passesTotal);
-      await new Promise<void>(resolve => setTimeout(resolve, 0));
+      if (elapsed > 60) {
+        if (chunk > 1) chunk = Math.max(1, Math.floor(chunk / 2));
+        else exportIters = Math.max(1, Math.floor(exportIters / 2));
+      } else if (elapsed < 20 && !collecting) {
+        if (exportIters < this.itersPerPass) exportIters = Math.min(this.itersPerPass, exportIters + 4);
+        else chunk = Math.min(16, chunk + 1);
+      }
+      o.onProgress?.(Math.min(1, 1 - remaining / target));
+      if (o.signal?.aborted) throw new DOMException('Export cancelled', 'AbortError');
     }
 
     if (solid && this.shadowCasters() > 0) this.offShadowsReady = true;
