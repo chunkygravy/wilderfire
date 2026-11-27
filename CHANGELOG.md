@@ -10,7 +10,9 @@ Notable changes to this WilderFire fork are documented here. Version headings di
 - Numeric validation and zoom range aligned with canvas navigation (0.02–64×).
 
 ### Validation
-- Automated build and tablet acceptance testing pending.
+- Automated CI and Build WilderFire workflows passed; pull request #2 merged.
+- 2026-11-27: User confirmed deployed camera controls are present and editable, and flame files save and reload in WilderFire Dev and JWildfire Mini.
+- Detailed slider/canvas synchronization, numeric precision and desktop JWildfire compatibility remain to be explicitly verified.
 
 ## [0.1.1] — Release candidate (unreleased)
 
