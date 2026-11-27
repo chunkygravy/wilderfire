@@ -1,5 +1,5 @@
 // Right panel — Render tab: camera, tonemap, quality, export.
-import { App, el, slider, toast, progressToast, type EngineState } from './common';
+import { App, el, slider, signButton, toast, progressToast, type EngineState } from './common';
 import { flameToJSON } from '../core/flame';
 import { flameToXML } from '../core/flameXML';
 import { importFlameFiles } from './flameImport';
@@ -45,6 +45,11 @@ function cameraSlider(o: Parameters<typeof slider>[0], mapping?: {
   };
   set(current);
   root.append(label, range, field);
+  if (Number(field.min) < 0 && Number(field.max) > 0) root.append(signButton(field, (n) => {
+    if (n < Number(field.min) || n > Number(field.max)) return;
+    const v = mapping ? mapping.fromDisplay(n) : n;
+    set(v); o.onInput(v);
+  }));
   return { root, set };
 }
 
@@ -62,7 +67,7 @@ function cameraCoordinate(label: string, value: number, onChange: (v: number) =>
     set(v); onChange(v);
   };
   set(value);
-  root.append(el('label', '', label), field);
+  root.append(el('label', '', label), field, signButton(field, (v) => { set(v); onChange(v); }));
   return { root, set };
 }
 
