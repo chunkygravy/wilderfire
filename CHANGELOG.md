@@ -2,6 +2,18 @@
 
 Notable changes to this WilderFire fork are documented here. Version headings distinguish released versions from development candidates.
 
+## [0.1.3] — Development preview (unreleased)
+
+### Added
+- Editable numeric fields in the shared slider component, retaining slider interaction and parameter bounds.
+- Invalid entries restore the previous value; integer-step controls reject fractional input.
+
+### Validation
+- CI and Build WilderFire passed; pull request #3 merged.
+- 2026-11-27: User confirmed editable fields work in Depth of Field, Tone and Engine after the deployed application updated.
+- Initial update delay was consistent with caching, but its cause was not independently verified.
+- Independent sliders, converted display units and detailed numeric precision remain to be audited.
+
 ## [0.1.2] — Development preview (unreleased)
 
 ### Added
