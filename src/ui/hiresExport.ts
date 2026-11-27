@@ -28,6 +28,7 @@ export interface HiResOpts {
   /** plotted samples per pixel */
   spp: number;
   tileLimit?: number;
+  onPlan?: (info: { tileW: number; tileH: number; count: number; maxCells: number; maxSide: number; gpuMaxCells: number }) => void;
   transparent?: boolean;
   /** called after every tile: done/total tiles */
   onTile?: (done: number, total: number) => void;
@@ -55,6 +56,28 @@ export function planTiles(w: number, h: number, lim: { maxCells: number; maxSide
   return { tile: side, tilesX: Math.ceil(w / side), tilesY: Math.ceil(h / side) };
 }
 
+/** Minimize full-image sampling repetitions, including padded allocation limits. */
+export function planRectTiles(w: number, h: number, lim: { maxCells: number; maxSide: number }, pad: number) {
+  if (w <= lim.maxSide && h <= lim.maxSide && w*h <= lim.maxCells)
+    return { tileW: w, tileH: h, tilesX: 1, tilesY: 1 };
+  const maxW = Math.min(w, lim.maxSide - 2*pad, Math.floor(lim.maxCells/(1+2*pad))-2*pad);
+  let best: { tileW: number; tileH: number; tilesX: number; tilesY: number } | undefined;
+  let bestCount = Infinity, bestArea = Infinity;
+  for (let tw = 1; tw <= maxW; tw++) {
+    const th = Math.min(h, lim.maxSide-2*pad, Math.floor(lim.maxCells/(tw+2*pad))-2*pad);
+    if (th < 1) continue;
+    const nx = Math.ceil(w/tw), ny = Math.ceil(h/th);
+    const bw = Math.ceil(w/nx), bh = Math.ceil(h/ny);
+    const area = (bw+2*pad)*(bh+2*pad);
+    if (nx*ny < bestCount || (nx*ny === bestCount && area < bestArea)) {
+      best = { tileW: bw, tileH: bh, tilesX: nx, tilesY: ny };
+      bestCount = nx*ny; bestArea = area;
+    }
+  }
+  if (!best) throw new Error('GPU tile budget too small');
+  return best;
+}
+
 export async function renderHiRes(renderer: FlameRenderer, flame: Flame, o: HiResOpts): Promise<Blob> {
   const PAD = 8;
   const { w: fullW, h: fullH } = o;
@@ -66,16 +89,18 @@ export async function renderHiRes(renderer: FlameRenderer, flame: Flame, o: HiRe
   const limits = renderer.exportTileLimit();
   // Conservative tile cap: reported per-buffer limits do not reflect total available GPU memory.
   const cap = o.tileLimit ?? 2048;
-  const plan = planTiles(fullW, fullH, { maxCells: Math.min(limits.maxCells, cap * cap), maxSide: Math.min(limits.maxSide, cap) }, PAD);
-  const TILE = plan.tile, tilesX = plan.tilesX, tilesY = plan.tilesY;
+  const budget = { maxCells: Math.min(limits.maxCells, cap * cap), maxSide: Math.min(limits.maxSide, cap) };
+  const plan = planRectTiles(fullW, fullH, budget, PAD);
+  const { tileW, tileH, tilesX, tilesY } = plan;
+  o.onPlan?.({ tileW, tileH, count: tilesX*tilesY, ...budget, gpuMaxCells: limits.maxCells });
   const single = tilesX === 1 && tilesY === 1;
   let n = 0;
   for (let ty = 0; ty < tilesY; ty++) {
     for (let tx = 0; tx < tilesX; tx++) {
       if (o.signal?.aborted) throw new DOMException('Export cancelled', 'AbortError');
-      const x0 = tx * TILE, y0 = ty * TILE;
-      const tw = Math.min(TILE, fullW - x0);
-      const th = Math.min(TILE, fullH - y0);
+      const x0 = tx * tileW, y0 = ty * tileH;
+      const tw = Math.min(tileW, fullW - x0);
+      const th = Math.min(tileH, fullH - y0);
       // Render with padding so the DE filter doesn't seam at tile edges (none needed for a single tile).
       const pad = single ? 0 : PAD;
       const pw = tw + 2 * pad, ph = th + 2 * pad;

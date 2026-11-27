@@ -2,13 +2,20 @@
 
 Notable changes to this WilderFire fork are documented here. Version headings distinguish released versions from development candidates.
 
+## [0.1.4.4] — Development preview (unreleased)
+
+- Rectangular tile planner minimizes full-image sampling repetitions within padded GPU limits.
+- Display effective tile dimensions, pass count, GPU cell limit and nominal sampling throughput.
+- Wrap export controls and throttle progress UI updates to four per second.
+- Mobile validation pending.
+
 ## [0.1.4.3] — Development preview (unreleased)
 
 - Adaptive export iterations and dispatch chunks, tracking total requested samples.
 - Configurable tile cap (1024–4096, default 2048), bounded by GPU limits.
 - Draft and Quick presets, editable SPP, elapsed time and estimated remaining time.
 - Cancellation between ordinary render submissions; motion blur cancellation remains limited.
-- Mobile performance and stability validation pending.
+- User confirmed 4096×2304 PNG at 700 SPP saves and opens; 96% after 8m18s with 3072 cap. 4096 cap showed no noticeable ETA improvement.
 
 ## [0.1.4.2] — Development preview (unreleased)
 

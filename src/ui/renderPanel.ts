@@ -596,8 +596,10 @@ export function buildRenderPanel(app: App, root: HTMLElement) {
   const batchBtn = el('button', '', '⬇ Batch…');
   batchBtn.title = 'Export several flames (current + library) at several sizes in one go';
   hiRow.append(hiBtn, hiQ, alphaLab, batchBtn);
-  io.append(hiRow);
-  const exportSettings = el('div', 'row'); exportSettings.append(el('label', '', 'SPP'), sppField, el('label', '', 'Tile cap'), tileSelect, cancelBtn); io.append(exportSettings);
+  hiRow.style.flexWrap = 'wrap'; io.append(hiRow);
+  const exportSettings = el('div', 'row'); exportSettings.style.flexWrap = 'wrap'; exportSettings.append(el('label', '', 'SPP'), sppField); io.append(exportSettings);
+  const tileRow = el('div', 'row'); tileRow.style.flexWrap = 'wrap'; tileRow.append(el('label', '', 'Tile cap'), tileSelect, cancelBtn); io.append(tileRow);
+  const diagnostics = el('div', 'hint'); io.append(diagnostics);
   const hiStatus = el('div', 'hint',
     'Load accepts WilderFire JSON and .flame XML (flam3 / Apophysis compatible). Save PNG uses the selected output dimensions; Batch… queues several flames and sizes into a folder.');
   io.append(hiStatus);
@@ -614,6 +616,7 @@ export function buildRenderPanel(app: App, root: HTMLElement) {
     hiBtn.disabled = true;
     const controller = new AbortController(); cancelBtn.disabled = false; cancelBtn.onclick = () => controller.abort();
     const started = performance.now();
+    let tileCount = 1; let planText = ''; let lastUpdate = 0;
     if (app.solo) app.setSolo(false); // exports always render the whole flame
     r.exporting = true;
     // the file exists (empty) from the moment the dialog closed: say so while the tiles render and the PNG is written
@@ -623,13 +626,18 @@ export function buildRenderPanel(app: App, root: HTMLElement) {
       const blob = await renderHiRes(r, app.flame, {
         w: fullW, h: fullH, spp, transparent, signal: controller.signal, tileLimit: Number(tileSelect.value), curves: app.getCurves(),
         ...(tl ? { motionBlur: { evalAt: tl.evalAt, t: tl.t0, fps: 25 } } : {}),
+        onPlan: p => { tileCount = p.count; planText = `${p.tileW}×${p.tileH} tiles · ${p.count} passes · GPU limit ${(p.gpuMaxCells/1e6).toFixed(2)} M cells`; diagnostics.textContent = planText; },
         onTile: (n, total) => {
           hiStatus.textContent = total > 1 ? `Hi-res: tile ${n}/${total} (${fullW}×${fullH})…` : `Hi-res: rendered ${fullW}×${fullH}, encoding…`;
           busy.set(total > 1 ? `Rendering ${fullW}×${fullH} PNG — tile ${n} of ${total}… (${target.name} stays empty until it is written)` : `Rendered ${fullW}×${fullH}, encoding…`);
         },
         onProgress: (f) => {
+          const now = performance.now();
+          if (f < 1 && now - lastUpdate < 250) return;
+          lastUpdate = now;
           const pct = Math.round(f * 100);
           const elapsed = (performance.now() - started) / 1000;
+          diagnostics.textContent = `${planText} · ${(f*tileCount*fullW*fullH*spp/Math.max(elapsed,0.001)/1e6).toFixed(2)} M nominal samples/s`;
           const eta = f > 0.005 ? Math.ceil(elapsed * (1-f) / f) : 0;
           const timing = ` — ${Math.floor(elapsed/60)}m ${Math.floor(elapsed%60)}s elapsed${eta ? `, ~${Math.floor(eta/60)}m ${eta%60}s left` : ''}`;
           hiStatus.textContent = `Hi-res: rendering ${fullW}×${fullH}… ${pct} %${timing}`;
