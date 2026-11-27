@@ -2,6 +2,15 @@
 
 Notable changes to this WilderFire fork are documented here. Version headings distinguish released versions from development candidates.
 
+## [0.1.3.1] — Development preview (unreleased)
+
+### Fixed
+- Added compact sign reversal buttons to signed shared sliders and camera coordinates/controls to accommodate mobile keyboards without a minus key.
+- Sign reversal respects existing bounds; positive-only controls remain unchanged.
+
+### Validation
+- Automated build and mobile layout/sign-entry testing pending.
+
 ## [0.1.3] — Development preview (unreleased)
 
 ### Added
