@@ -1,3 +1,8 @@
+## [0.2.1.1] — Development preview
+
+- Reduce section padding, heading margins and disclosure action spacing; remove redundant section divider lines in control tabs.
+- Preserve disclosure behavior and toolbar layout. Mobile visual verification pending.
+
 ## [0.2.1] — Development preview
 
 - Standardize section disclosures across five control tabs with visible directional chevrons, keyboard-accessible headings, remembered states and per-tab expand/collapse all.
