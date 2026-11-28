@@ -1,3 +1,9 @@
+## [0.2.1] — Development preview
+
+- Standardize section disclosures across five control tabs with visible directional chevrons, keyboard-accessible headings, remembered states and per-tab expand/collapse all.
+- Preserve existing transform disclosure defaults on first use; rendering engine and toolbar layout unchanged.
+- UI regression testing pending.
+
 ## [0.2.0.1] — Development preview
 
 - Move version label to secondary toolbar; group Randomize, Mutate, Undo and Redo together.
