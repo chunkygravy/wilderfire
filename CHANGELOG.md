@@ -1,3 +1,8 @@
+## [0.2.0.1] — Development preview
+
+- Move version label to secondary toolbar; group Randomize, Mutate, Undo and Redo together.
+- Right-align secondary actions on narrow screens; preserve flame name in a separate row.
+
 # Changelog
 
 Notable changes to this WilderFire fork are documented here. Version headings distinguish released versions from development candidates.
