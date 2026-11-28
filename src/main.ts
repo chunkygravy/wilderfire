@@ -49,7 +49,7 @@ async function boot() {
   const logo = el('div', 'logo');
   const w1 = el('span', 'wf-wilder', 'Wilder');
   const w2 = el('span', 'wf-fire', 'Fire');
-  logo.append(w1, w2);
+  logo.append(w1, w2, el('span', 'build-version', 'v0.2.0'));
 
   // The built-in flames live in the Library dialog's ◆ Samples collection now — with pictures and
   // search — instead of a 59-line "Tests" list in the header. A first visit opens on PRESETS[0].
@@ -177,8 +177,6 @@ async function boot() {
 
   // ---------- Layout ----------
   const main = el('div', 'main');
-  const left = el('div', 'panel panel-left');
-  left.tabIndex = 0; // keyboard scrolling (arrows, Page Up/Down, Home/End) once clicked
   const wrap = el('div', 'canvas-wrap');
   const right = el('div', 'panel panel-right');
   right.tabIndex = 0;
@@ -211,31 +209,31 @@ async function boot() {
     apply(localStorage.getItem(key) === '1');
     return { el: h, toggle };
   };
-  const leftHandle = makeHandle(left, 'left');
   const rightHandle = makeHandle(right, 'right');
   window.addEventListener('keydown', (e) => {
     const tag = (e.target as HTMLElement)?.tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.metaKey || e.ctrlKey || e.altKey) return;
-    if (e.key === '[') { e.preventDefault(); leftHandle.toggle(); }
-    else if (e.key === ']') { e.preventDefault(); rightHandle.toggle(); }
+    if (e.key === '[' || e.key === ']') { e.preventDefault(); rightHandle.toggle(); }
     else if (e.key === 's' || e.key === 'S') { e.preventDefault(); app.setSolo(!app.solo); }
   });
 
-  main.append(left, leftHandle.el, wrap, rightHandle.el, right);
+  main.append(wrap, rightHandle.el, right);
   root.append(header, main);
 
   // ---------- Right panel tabs ----------
   const tabs = el('div', 'tabs');
-  const tabDefs = ['Render', 'Gradient', 'Anim', 'AI'] as const;
+  const tabDefs = ['Transform', 'Render', 'Gradient', 'Animation', 'Files'] as const;
+  const selectedTab = Math.max(0, tabDefs.findIndex(n => n === localStorage.getItem('wilderfire.controlTab')));
   const bodies: HTMLElement[] = [];
   tabDefs.forEach((name, i) => {
-    const b = el('button', i === 0 ? 'active' : '', name);
+    const b = el('button', i === selectedTab ? 'active' : '', name);
     b.onclick = () => {
       tabs.querySelectorAll('button').forEach((x, k) => x.classList.toggle('active', k === i));
       bodies.forEach((x, k) => x.classList.toggle('active', k === i));
+      localStorage.setItem('wilderfire.controlTab', name);
     };
     tabs.append(b);
-    const body = el('div', 'tab-body' + (i === 0 ? ' active' : ''));
+    const body = el('div', 'tab-body' + (i === selectedTab ? ' active' : ''));
     body.tabIndex = 0; // the scrolling element of the right pane: focusable so the keys scroll it
     bodies.push(body);
   });
@@ -318,12 +316,16 @@ async function boot() {
 
   // ---------- Panels ----------
   const overlay = buildOverlay(app, overlayCanvas, wrap);
-  buildTransformsPanel(app, left);
-  buildRenderPanel(app, bodies[0]);
-  buildPalettePanel(app, bodies[1]);
-  const anim = buildAnimPanel(app, bodies[2], overlay);
+  buildTransformsPanel(app, bodies[0]);
+  buildRenderPanel(app, bodies[1], bodies[4]);
+  buildPalettePanel(app, bodies[2]);
+  const anim = buildAnimPanel(app, bodies[3], overlay);
   app.anim = { addKey: () => anim.addKey(), play: () => anim.play(), stop: () => anim.stop(), keyCount: () => anim.keys.length };
-  buildAIPanel(app, bodies[3]);
+  const aiRoot = el('div', 'ai-modal-content');
+  buildAIPanel(app, aiRoot);
+  const aiBtn = el('button', '', 'AI');
+  aiBtn.onclick = () => { const { body } = openModal('AI assistant'); body.append(aiRoot); };
+  header.insertBefore(aiBtn, aboutBtn);
   if (saved?.anim) anim.setState(saved.anim as AnimState);
   const library = buildLibrary(app, anim);
   saveBtn.onclick = () => {
