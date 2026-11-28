@@ -537,3 +537,11 @@ a { color: var(--accent2); }
   .toolbar-secondary { gap: 4px; }
   .toolbar-secondary button { padding-left: 5px; padding-right: 5px; }
 }
+
+/* Consistent section disclosure affordances */
+.disclosure-actions { display: flex; justify-content: flex-end; gap: 6px; padding: 6px 12px; position: sticky; top: 0; z-index: 2; background: var(--bg2); }
+.section h3.disclosure-heading { margin: 4px 0 8px; }
+.disclosure-toggle { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; text-align: left; font: inherit; color: var(--fg); padding: 9px 8px; }
+.disclosure-toggle::after { content: '›'; font-size: 17px; line-height: 1; flex: 0 0 auto; }
+.disclosure-toggle[aria-expanded="true"]::after { transform: rotate(90deg); }
+.disclosure-body[hidden] { display: none !important; }
