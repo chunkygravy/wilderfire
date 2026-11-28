@@ -178,7 +178,7 @@ async function boot() {
   const secondaryTools = el('div', 'toolbar-secondary');
   secondaryTools.append(shareBtn, saveBtn, libBtn, triBtn, themeBtn, aboutBtn);
   const secondaryRow = el('div', 'toolbar-secondary-row');
-  secondaryRow.append(el('span', 'build-version', 'v0.2.1'), secondaryTools);
+  secondaryRow.append(el('span', 'build-version', 'v0.2.1.1'), secondaryTools);
   const nameRow = el('div', 'toolbar-name');
   nameRow.append(nameInp, provEl);
   header.append(primaryTools, nameRow, secondaryRow);
