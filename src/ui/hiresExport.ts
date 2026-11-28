@@ -27,7 +27,6 @@ export interface HiResOpts {
   w: number; h: number;
   /** plotted samples per pixel */
   spp: number;
-  tileLimit?: number;
   onPlan?: (info: { tileW: number; tileH: number; count: number; maxCells: number; maxSide: number; gpuMaxCells: number }) => void;
   transparent?: boolean;
   /** called after every tile: done/total tiles */
@@ -87,9 +86,7 @@ export async function renderHiRes(renderer: FlameRenderer, flame: Flame, o: HiRe
   out.height = fullH;
   const ctx = out.getContext('2d')!;
   const limits = renderer.exportTileLimit();
-  // Conservative tile cap: reported per-buffer limits do not reflect total available GPU memory.
-  const cap = o.tileLimit ?? 2048;
-  const budget = { maxCells: Math.min(limits.maxCells, cap * cap), maxSide: Math.min(limits.maxSide, cap) };
+  const budget = limits;
   const plan = planRectTiles(fullW, fullH, budget, PAD);
   const { tileW, tileH, tilesX, tilesY } = plan;
   o.onPlan?.({ tileW, tileH, count: tilesX*tilesY, ...budget, gpuMaxCells: limits.maxCells });
