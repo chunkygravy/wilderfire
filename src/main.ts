@@ -2,7 +2,7 @@
 // Copyright © 2026 Andre Paquette. SPDX-License-Identifier: LGPL-2.1-or-later
 // See LICENSE and NOTICE.md (third-party material, notably JWildfire-derived code).
 import './style.css';
-import { App, el, openModal } from './ui/common';
+import { App, el, openModal, installSectionDisclosures } from './ui/common';
 import { FlameRenderer } from './gpu/renderer';
 import { PRESETS } from './core/presets';
 
@@ -178,7 +178,7 @@ async function boot() {
   const secondaryTools = el('div', 'toolbar-secondary');
   secondaryTools.append(shareBtn, saveBtn, libBtn, triBtn, themeBtn, aboutBtn);
   const secondaryRow = el('div', 'toolbar-secondary-row');
-  secondaryRow.append(el('span', 'build-version', 'v0.2.0.1'), secondaryTools);
+  secondaryRow.append(el('span', 'build-version', 'v0.2.1'), secondaryTools);
   const nameRow = el('div', 'toolbar-name');
   nameRow.append(nameInp, provEl);
   header.append(primaryTools, nameRow, secondaryRow);
@@ -329,6 +329,7 @@ async function boot() {
   buildPalettePanel(app, bodies[2]);
   const anim = buildAnimPanel(app, bodies[3], overlay);
   app.anim = { addKey: () => anim.addKey(), play: () => anim.play(), stop: () => anim.stop(), keyCount: () => anim.keys.length };
+  bodies.forEach((body, i) => installSectionDisclosures(body, tabDefs[i]));
   const aiRoot = el('div', 'ai-modal-content');
   buildAIPanel(app, aiRoot);
   const aiBtn = el('button', '', 'AI');
