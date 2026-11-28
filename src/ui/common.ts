@@ -350,3 +350,60 @@ export function progressToast(message: string): { set: (text: string) => void; c
     close: () => { t.classList.add('out'); setTimeout(() => t.remove(), 250); },
   };
 }
+
+
+// Standard disclosure controls for direct section headings, including rebuilt transform editors.
+export function installSectionDisclosures(root: HTMLElement, key: string) {
+  const states: Record<string, boolean> = (() => {
+    try { return JSON.parse(localStorage.getItem('wilderfire.sections.' + key) || '{}') || {}; }
+    catch { return {}; }
+  })();
+  const save = () => { try { localStorage.setItem('wilderfire.sections.' + key, JSON.stringify(states)); } catch {} };
+  const controls = new Map<HTMLElement, (open: boolean) => void>();
+  const scan = () => {
+    for (const h of controls.keys()) if (!root.contains(h)) controls.delete(h);
+    for (const sec of root.querySelectorAll<HTMLElement>('.section')) {
+      for (const head of Array.from(sec.children).filter((n): n is HTMLElement => n instanceof HTMLElement && n.tagName === 'H3')) {
+        if (controls.has(head)) continue;
+        const nodes: HTMLElement[] = [];
+        for (let n = head.nextElementSibling; n && n.tagName !== 'H3'; n = n.nextElementSibling) {
+          if (n instanceof HTMLElement) nodes.push(n);
+        }
+        if (!nodes.length) continue;
+        const label = (head.textContent || '').trim();
+        const id = label.replace(/Transform T\d+/, 'Transform').replace(/\s*\([^)]*\)\s*$/, '').trim();
+        const legacy = head.onclick;
+        const defaultOpen = !legacy || nodes[0].style.display !== 'none';
+        const body = el('div', 'disclosure-body');
+        head.after(body);
+        body.append(...nodes);
+        head.onclick = null;
+        // Legacy sections hide their own single content node; normalize it before wrapping.
+        if (legacy && nodes[0].style.display === 'none') nodes[0].style.display = nodes[0].classList.contains('affine-grid') ? 'grid' : 'block';
+        head.classList.add('disclosure-heading');
+        const button = el('button', 'disclosure-toggle', label);
+        button.type = 'button';
+        head.replaceChildren(button);
+        const apply = (open: boolean) => {
+          body.hidden = !open;
+          button.setAttribute('aria-expanded', String(open));
+          states[id] = open;
+          save();
+        };
+        button.onclick = () => apply(body.hidden);
+        controls.set(head, apply);
+        apply(states[id] ?? defaultOpen);
+      }
+    }
+  };
+  const bar = el('div', 'disclosure-actions');
+  for (const [label, open] of [['Expand all', true], ['Collapse all', false]] as const) {
+    const b = el('button', '', label);
+    b.type = 'button';
+    b.onclick = () => { scan(); controls.forEach(apply => apply(open)); };
+    bar.append(b);
+  }
+  root.prepend(bar);
+  scan();
+  new MutationObserver(scan).observe(root, { childList: true, subtree: true });
+}
