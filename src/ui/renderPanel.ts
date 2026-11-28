@@ -582,9 +582,6 @@ export function buildRenderPanel(app: App, root: HTMLElement) {
   const customQ = el('option', '', 'Custom') as HTMLOptionElement; customQ.value = 'custom'; hiQ.append(customQ);
   hiQ.onchange = () => { if (hiQ.value !== 'custom') sppField.value = hiQ.value; };
   sppField.onchange = () => { hiQ.value = QUALITY_OPTIONS.some(q => q.value === sppField.value) ? sppField.value : 'custom'; };
-  const tileSelect = el('select') as HTMLSelectElement;
-  for (const size of [1024, 1536, 2048, 3072, 4096]) { const opt = el('option', '', String(size)) as HTMLOptionElement; opt.value = String(size); tileSelect.append(opt); }
-  tileSelect.value = '2048'; tileSelect.title = 'Maximum GPU tile side (larger uses more memory)';
   const cancelBtn = el('button', '', 'Cancel export'); cancelBtn.disabled = true;
   const alphaChk = el('input') as HTMLInputElement;
   alphaChk.type = 'checkbox';
@@ -598,7 +595,7 @@ export function buildRenderPanel(app: App, root: HTMLElement) {
   hiRow.append(hiBtn, hiQ, alphaLab, batchBtn);
   hiRow.style.flexWrap = 'wrap'; io.append(hiRow);
   const exportSettings = el('div', 'row'); exportSettings.style.flexWrap = 'wrap'; exportSettings.append(el('label', '', 'SPP'), sppField); io.append(exportSettings);
-  const tileRow = el('div', 'row'); tileRow.style.flexWrap = 'wrap'; tileRow.append(el('label', '', 'Tile cap'), tileSelect, cancelBtn); io.append(tileRow);
+  const tileRow = el('div', 'row'); tileRow.style.flexWrap = 'wrap'; tileRow.append(cancelBtn); io.append(tileRow);
   const diagnostics = el('div', 'hint'); io.append(diagnostics);
   const hiStatus = el('div', 'hint',
     'Load accepts WilderFire JSON and .flame XML (flam3 / Apophysis compatible). Save PNG uses the selected output dimensions; Batch… queues several flames and sizes into a folder.');
@@ -624,7 +621,7 @@ export function buildRenderPanel(app: App, root: HTMLElement) {
     try {
       const tl = app.flame.motionBlur ? app.timeline() : null;
       const blob = await renderHiRes(r, app.flame, {
-        w: fullW, h: fullH, spp, transparent, signal: controller.signal, tileLimit: Number(tileSelect.value), curves: app.getCurves(),
+        w: fullW, h: fullH, spp, transparent, signal: controller.signal, curves: app.getCurves(),
         ...(tl ? { motionBlur: { evalAt: tl.evalAt, t: tl.t0, fps: 25 } } : {}),
         onPlan: p => { tileCount = p.count; planText = `${p.tileW}×${p.tileH} tiles · ${p.count} passes · GPU limit ${(p.gpuMaxCells/1e6).toFixed(2)} M cells`; diagnostics.textContent = planText; },
         onTile: (n, total) => {

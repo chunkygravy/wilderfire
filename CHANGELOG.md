@@ -2,6 +2,12 @@
 
 Notable changes to this WilderFire fork are documented here. Version headings distinguish released versions from development candidates.
 
+## [0.1.4.5] — Development preview (unreleased)
+
+- Remove artificial tile cap and manual selector; single and batch PNG exports use GPU-reported limits automatically.
+- Retain rectangular planning and adaptive scheduling to isolate the tile-cap regression.
+- Controlled 3840×2160 Good batch benchmark before fix: original 27 s, modified 64 s. Retest pending.
+
 ## [0.1.4.4] — Development preview (unreleased)
 
 - Rectangular tile planner minimizes full-image sampling repetitions within padded GPU limits.
