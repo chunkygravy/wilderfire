@@ -49,7 +49,7 @@ async function boot() {
   const logo = el('div', 'logo');
   const w1 = el('span', 'wf-wilder', 'Wilder');
   const w2 = el('span', 'wf-fire', 'Fire');
-  logo.append(w1, w2, el('span', 'build-version', 'v0.2.0'));
+  logo.append(w1, w2);
 
   // The built-in flames live in the Library dialog's ◆ Samples collection now — with pictures and
   // search — instead of a 59-line "Tests" list in the header. A first visit opens on PRESETS[0].
@@ -173,7 +173,15 @@ async function boot() {
   };
   nameInp.addEventListener('change', () => { app.flame.name = nameInp.value.trim(); app.commitTone('name'); showName(); });
   nameInp.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === 'Escape') { if (e.key === 'Escape') showName(); nameInp.blur(); } });
-  header.append(logo, randSplit, mutBtn, undoBtn, redoBtn, nameInp, provEl, shareBtn, saveBtn, libBtn, triBtn, themeBtn, aboutBtn);
+  const primaryTools = el('div', 'toolbar-primary');
+  primaryTools.append(logo, randSplit, mutBtn, undoBtn, redoBtn);
+  const secondaryTools = el('div', 'toolbar-secondary');
+  secondaryTools.append(shareBtn, saveBtn, libBtn, triBtn, themeBtn, aboutBtn);
+  const secondaryRow = el('div', 'toolbar-secondary-row');
+  secondaryRow.append(el('span', 'build-version', 'v0.2.0.1'), secondaryTools);
+  const nameRow = el('div', 'toolbar-name');
+  nameRow.append(nameInp, provEl);
+  header.append(primaryTools, nameRow, secondaryRow);
 
   // ---------- Layout ----------
   const main = el('div', 'main');
@@ -325,7 +333,7 @@ async function boot() {
   buildAIPanel(app, aiRoot);
   const aiBtn = el('button', '', 'AI');
   aiBtn.onclick = () => { const { body } = openModal('AI assistant'); body.append(aiRoot); };
-  header.insertBefore(aiBtn, aboutBtn);
+  secondaryTools.insertBefore(aiBtn, aboutBtn);
   if (saved?.anim) anim.setState(saved.anim as AnimState);
   const library = buildLibrary(app, anim);
   saveBtn.onclick = () => {
