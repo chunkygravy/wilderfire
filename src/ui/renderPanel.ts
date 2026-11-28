@@ -92,7 +92,7 @@ function cameraCoordinate(label: string, value: number, onChange: (v: number) =>
   return { root, set };
 }
 
-export function buildRenderPanel(app: App, root: HTMLElement) {
+export function buildRenderPanel(app: App, root: HTMLElement, filesRoot: HTMLElement = root) {
   const cam = el('div', 'section');
   cam.append(el('h3', '', 'Camera'));
   const centerX = cameraCoordinate('Center X', app.flame.centerX, (v) => { app.flame.centerX = v; app.commit(SRC); });
@@ -659,7 +659,8 @@ export function buildRenderPanel(app: App, root: HTMLElement) {
   };
 
   const solidSec = buildSolidSection(app);
-  root.append(cam, dof, solidSec, tone, perf, resolution, io);
+  root.append(cam, dof, solidSec, tone, perf);
+  filesRoot.append(resolution, io);
 
   app.on('flame', (src) => {
     if (src === SRC) return;

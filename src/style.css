@@ -500,3 +500,23 @@ a { color: var(--accent2); }
 .glib-strip { height: 16px; border-radius: 4px; border: 1px solid var(--border); }
 .glib-name { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .glib-pack { font-size: 11px; color: var(--fg-dim); }
+
+/* Unified control panel — v0.2.0 */
+.build-version { display: inline-block; margin-left: 6px; font-size: 10px; color: var(--fg-dim); font-weight: 400; }
+.panel-right { width: clamp(330px, 34vw, 440px); min-height: 0; }
+.tab-body { min-height: 0; }
+.tabs { flex-wrap: wrap; }
+.tabs button { flex: 1 0 auto; padding: 9px 6px; }
+.header { height: auto; min-height: 48px; flex-wrap: wrap; gap: 6px; padding: 6px 10px; }
+.header .logo, .header .rand-split { flex-shrink: 0; }
+.ai-modal-content { display: flex; flex-direction: column; min-height: 280px; height: min(65vh, 600px); }
+@media (max-width: 700px) {
+  .main { flex-direction: column; }
+  .canvas-wrap { min-height: 0; }
+  .panel-right { width: 100%; flex: 0 0 52%; border-left: 0; border-top: 1px solid var(--border); }
+  .pane-handle-right { width: 100%; flex: 0 0 24px; border-left: 0; }
+  .pane-handle-right .glyph { transform: rotate(90deg); }
+  .header .flame-name { min-width: 100px; }
+  .header .flame-prov { max-width: 45vw; }
+  .row input[type=range] { min-width: 0; }
+}

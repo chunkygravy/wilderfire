@@ -2,6 +2,14 @@
 
 Notable changes to this WilderFire fork are documented here. Version headings distinguish released versions from development candidates.
 
+## [0.2.0] — Development preview (unreleased)
+
+- Single unified control panel with Transform, Render, Gradient, Animation and Files tabs.
+- Retain Randomize, generator options, Mutate and existing toolbar actions; AI opens in a dialog.
+- Remember selected tab; responsive bottom panel on narrow screens, right panel otherwise.
+- Visible version label; resolution and export controls moved to Files.
+- Rendering engine unchanged. Device layout validation pending.
+
 ## [0.1.4.5] — Development preview (unreleased)
 
 - Remove artificial tile cap and manual selector; single and batch PNG exports use GPU-reported limits automatically.
