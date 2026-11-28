@@ -545,3 +545,12 @@ a { color: var(--accent2); }
 .disclosure-toggle::after { content: '›'; font-size: 17px; line-height: 1; flex: 0 0 auto; }
 .disclosure-toggle[aria-expanded="true"]::after { transform: rotate(90deg); }
 .disclosure-body[hidden] { display: none !important; }
+
+/* Compact disclosure sections in the unified controls. */
+.tab-body .section { padding: 3px 12px; border-bottom: 0; }
+.tab-body .section h3.disclosure-heading { margin: 0; }
+.tab-body .section .disclosure-heading:not(:first-child) { margin-top: 5px; }
+.disclosure-toggle { padding: 5px 8px; min-height: 34px; }
+.disclosure-body:not([hidden]) { padding: 5px 0 3px; }
+.disclosure-actions { padding: 4px 12px 5px; }
+.disclosure-actions button { padding: 4px 8px; }
