@@ -520,3 +520,20 @@ a { color: var(--accent2); }
   .header .flame-prov { max-width: 45vw; }
   .row input[type=range] { min-width: 0; }
 }
+
+/* Keep primary actions together; version belongs to secondary row. */
+.toolbar-primary, .toolbar-secondary, .toolbar-secondary-row, .toolbar-name { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.toolbar-primary { flex: 0 0 auto; }
+.toolbar-name { flex: 1 1 120px; }
+.toolbar-secondary-row { flex: 0 0 auto; }
+.toolbar-secondary { justify-content: flex-end; flex-wrap: wrap; }
+.toolbar-secondary-row .build-version { margin-left: 0; white-space: nowrap; }
+@media (max-width: 700px) {
+  .toolbar-primary { width: 100%; gap: 4px; }
+  .toolbar-primary .logo { margin-right: auto; font-size: 14px; }
+  .toolbar-primary button { padding-left: 6px; padding-right: 6px; }
+  .toolbar-secondary-row { width: 100%; justify-content: space-between; }
+  .toolbar-name { order: 3; flex-basis: 100%; }
+  .toolbar-secondary { gap: 4px; }
+  .toolbar-secondary button { padding-left: 5px; padding-right: 5px; }
+}
